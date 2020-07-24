@@ -1,0 +1,94 @@
+---
+title: "machine learning peer-1"
+author: "TARUN"
+date: "24/07/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What you should submit  
+The goal of your project is to predict the manner in which they did the exercise.
+This is the "classe" variable in the training set. You may use any of the other
+variables to predict with. You should create a report describing how you built  
+your model, how you used cross validation, what you think the expected out of 
+sample error is, and why you made the choices you did. You will also use your 
+prediction model to predict 20 different test cases.
+
+
+##packages used
+```{r}
+library(ggplot2)
+library(caret)
+library(rattle)
+library(randomForest)
+library(rpart)
+```
+## collecting the data
+```{r}
+training <- read.csv("pml-training.csv",na.strings = c("NA","#DIV/0!", ""))
+testing <- read.csv("pml-testing.csv",na.strings = c("NA","#DIV/0!", ""))
+
+```
+
+## Now clean data sets
+```{r}
+# we will remove columns with all na values
+training <- training[,colSums(is.na(training))==0]
+testing <- testing[,colSums(is.na(testing))==0]
+
+# we will remove unwanted columns like dates and time since they have no role in
+# prediction.
+training <- training[,-c(1:7)]
+testing <- testing[,-c(1:7)]
+ncol(training)
+ncol(testing)
+
+```
+
+## We  will create  cross validation data sets.  
+```{r}
+intrain <- createDataPartition(y = training$classe,p=0.7,list = FALSE)
+train_training <- training[intrain,]
+test_training <- training[-intrain,]
+
+```
+
+## now lets see distribution of classes
+```{r}
+qplot(x = classe,data = train_training,fill= "red")
+## This shows that class are distributed evenly except for the one A class.
+## Which has relatively more frequency then others.
+```
+
+## now lets try distribution tree model.
+```{r}
+modfit_rpart <- rpart(classe~.,data = train_training,method = "class")
+pred_rpart <- predict(modfit_rpart,test_training,type = "class")
+confusionMatrix(pred_rpart,as.factor(test_training$classe))
+
+
+```
+
+## now lets try random forest model
+```{r}
+modfit_rf <- randomForest(as.factor(classe)~.,data = train_training,method = "class")
+pred_rf <- predict(modfit_rf,test_training)
+confusionMatrix(pred_rf,as.factor(test_training$classe))
+
+
+```
+
+
+
+# RESULTS
+## it is clear from above that random forest model is performing much better then
+## tree model is.
+
+# main prediction
+```{r}
+pred_final <- predict(modfit_rf,testing)
+pred_final
+```
